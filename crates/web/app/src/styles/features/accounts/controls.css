@@ -1,0 +1,52 @@
+.account-bind-controls {
+  display: inline-flex;
+}
+
+.account-bind-controls .account-bind-select,
+.account-bind-controls .accounts-bulk-select {
+  width: min(140px, 100%);
+}
+
+.account-bind-controls .account-bind-select .custom-select-trigger,
+.account-bind-controls .accounts-bulk-select .custom-select-trigger {
+  min-height: 38px;
+  padding-top: 7px;
+  padding-bottom: 7px;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.account-bind-controls .account-bind-select .custom-select-trigger:hover,
+.account-bind-controls .accounts-bulk-select .custom-select-trigger:hover {
+  transform: none;
+}
+
+.account-bind-controls .account-bind-select:focus-within,
+.account-bind-controls .accounts-bulk-select:focus-within {
+  z-index: 1;
+}
+
+.account-bind-controls .account-bind-select:focus-within .custom-select-trigger,
+.account-bind-controls .accounts-bulk-select:focus-within .custom-select-trigger {
+  transform: none;
+  box-shadow: none;
+}
+
+.account-bind-controls .ghost-button,
+.account-bind-controls .primary-button {
+  min-width: 58px;
+}
+
+.account-bind-controls .ghost-button:hover,
+.account-bind-controls .primary-button:hover {
+  background: var(--card-hover);
+}
+
+.accounts-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 4px;
+}

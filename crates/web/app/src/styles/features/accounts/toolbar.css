@@ -1,0 +1,39 @@
+.accounts-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 24px;
+}
+
+.accounts-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.accounts-bulk-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  background: var(--surface);
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--border-strong);
+  box-shadow: 2px 2px 0px rgba(28, 27, 34, 0.1);
+  align-items: center;
+}
+
+.accounts-bulk-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.accounts-selected-count {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-secondary);
+  font-family: var(--mono);
+}

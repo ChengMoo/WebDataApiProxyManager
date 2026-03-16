@@ -1,0 +1,175 @@
+.filter-bar { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
+.filter-bar > .inline-field { min-width: 120px; }
+
+.advanced-filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: var(--radius-sm);
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: 800;
+  font-family: var(--mono);
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  white-space: nowrap;
+  transition: all 100ms ease;
+  box-shadow: 2px 2px 0px var(--border);
+}
+
+.advanced-filter-toggle:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px var(--border);
+}
+
+.advanced-filter-toggle svg { width: 14px; height: 14px; transition: transform 150ms ease; }
+.advanced-filter-toggle.is-expanded svg { transform: rotate(180deg); }
+
+.advanced-filter-section {
+  display: none;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 16px;
+  width: 100%;
+  padding: 20px;
+  background: var(--surface);
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  margin-top: 8px;
+}
+
+.advanced-filter-section.is-visible { display: flex; }
+
+.range-input { display: flex; align-items: center; gap: 8px; }
+.range-input input { width: 80px; }
+.range-input .range-sep,
+.range-input .range-separator { color: var(--text-tertiary); font-size: 14px; flex-shrink: 0; }
+
+.request-limit-input {
+  width: 80px;
+}
+
+.request-logs-table {
+  table-layout: fixed;
+}
+
+.request-logs-table th:nth-child(1),
+.request-logs-table td:nth-child(1) {
+  width: 118px;
+}
+
+.request-logs-table th:nth-child(2),
+.request-logs-table td:nth-child(2) {
+  width: 156px;
+}
+
+.request-logs-table th:nth-child(3),
+.request-logs-table td:nth-child(3) {
+  width: 92px;
+}
+
+.request-logs-table th:nth-child(4),
+.request-logs-table td:nth-child(4),
+.request-logs-table th:nth-child(5),
+.request-logs-table td:nth-child(5),
+.request-logs-table th:nth-child(6),
+.request-logs-table td:nth-child(6) {
+  width: 102px;
+}
+
+.request-logs-table th:nth-child(7),
+.request-logs-table td:nth-child(7) {
+  width: 76px;
+}
+
+.request-logs-table th:nth-child(8),
+.request-logs-table td:nth-child(8) {
+  width: 84px;
+}
+
+.request-logs-table td {
+  vertical-align: middle;
+}
+
+.request-logs-table th:nth-child(3),
+.request-logs-table td:nth-child(3),
+.request-logs-table th:nth-child(4),
+.request-logs-table td:nth-child(4),
+.request-logs-table th:nth-child(5),
+.request-logs-table td:nth-child(5),
+.request-logs-table th:nth-child(6),
+.request-logs-table td:nth-child(6),
+.request-logs-table th:nth-child(7),
+.request-logs-table td:nth-child(7),
+.request-logs-table th:nth-child(8),
+.request-logs-table td:nth-child(8) {
+  text-align: center;
+}
+
+.request-logs-table .provider-tag {
+  min-width: 0;
+  justify-content: center;
+}
+
+.request-log-route,
+.request-log-status {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.request-log-route {
+  width: 100%;
+}
+
+.request-log-center-cell {
+  text-align: center !important;
+}
+
+.request-log-inline-text {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.request-log-copy-chip {
+  min-width: 72px;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--border);
+  background: rgba(28, 27, 34, 0.03);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 800;
+  font-family: var(--mono);
+  box-shadow: 2px 2px 0px rgba(28, 27, 34, 0.08);
+  transition: all 100ms ease;
+}
+
+.request-log-copy-chip:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px rgba(28, 27, 34, 0.12);
+  background: var(--card-hover);
+}
+
+.request-log-copy-chip.is-copied {
+  border-color: var(--success);
+  color: var(--success);
+  box-shadow: 2px 2px 0px rgba(0, 166, 126, 0.22);
+}

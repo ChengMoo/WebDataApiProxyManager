@@ -1,0 +1,14 @@
+services:
+  wdapm:
+    image: ghcr.io/mgrsc/webdataapiproxymanager:latest
+    ports:
+      - "8080:3000"
+    init: true
+    env_file:
+      - .env
+    volumes:
+      - wdapm-data:/data
+    restart: unless-stopped
+
+volumes:
+  wdapm-data:

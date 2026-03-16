@@ -1,0 +1,15 @@
+[workspace]
+members = [
+    "crates/admin-api",
+    "crates/app",
+    "crates/core",
+    "crates/gateway",
+    "crates/providers/exa",
+    "crates/providers/firecrawl",
+    "crates/providers/jina",
+    "crates/providers/tavily",
+    "crates/scheduler",
+    "crates/storage",
+    "crates/worker",
+]
+resolver = "3"

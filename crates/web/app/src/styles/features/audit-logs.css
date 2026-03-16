@@ -1,0 +1,52 @@
+.audit-diff-card {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.audit-diff-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 112px;
+  padding: 6px 10px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(28, 27, 34, 0.03);
+  color: var(--text-secondary);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 2px 2px 0px rgba(28, 27, 34, 0.08);
+  transition: transform 100ms ease, box-shadow 100ms ease, background 100ms ease, color 100ms ease;
+}
+
+.audit-diff-toggle:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px rgba(28, 27, 34, 0.12);
+  background: var(--card-hover);
+  color: var(--text);
+}
+
+.audit-diff-caret {
+  flex-shrink: 0;
+  transition: transform 100ms ease;
+}
+
+.audit-diff-caret.is-open {
+  transform: rotate(180deg);
+}
+
+.audit-diff-content {
+  margin: 0;
+  padding: 10px 12px;
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: rgba(28, 27, 34, 0.03);
+  color: var(--text-tertiary);
+  font-family: var(--mono);
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}

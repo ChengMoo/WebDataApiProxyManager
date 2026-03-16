@@ -1,0 +1,7 @@
+[package]
+name = "wdapm-provider-tavily"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+wdapm-core = { version = "0.1.0", path = "../../core" }

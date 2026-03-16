@@ -1,0 +1,29 @@
+.provider-tag {
+  min-width: 60px;
+  justify-content: center;
+  border-width: 3px;
+}
+
+.tag.provider-exa {
+  background: #ede7f6;
+  border-color: #6200ea;
+  color: #311b92;
+}
+
+.tag.provider-tavily {
+  background: #e0f2ee;
+  border-color: #00a67e;
+  color: #066b55;
+}
+
+.tag.provider-firecrawl {
+  background: #fff3e0;
+  border-color: #f59e0b;
+  color: #8a5300;
+}
+
+.tag.provider-jina {
+  background: #fce4ec;
+  border-color: #f50057;
+  color: #a30043;
+}
