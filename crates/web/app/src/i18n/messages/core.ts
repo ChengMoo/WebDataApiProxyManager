@@ -37,6 +37,8 @@ export const coreMessages = {
   'common.saving': { en: 'Saving...', zh: '保存中...' },
   'common.cancel': { en: 'Cancel', zh: '取消' },
   'common.edit': { en: 'Edit', zh: '编辑' },
+  'common.test': { en: 'Test', zh: '测试' },
+  'common.testing': { en: 'Testing...', zh: '测试中...' },
   'common.revoke': { en: 'Revoke', zh: '吊销' },
   'common.revoking': { en: 'Revoking...', zh: '吊销中...' },
   'common.copy': { en: 'Copy', zh: '复制' },

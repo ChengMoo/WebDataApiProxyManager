@@ -1,4 +1,4 @@
-import type { EgressProxySummary } from '../../types'
+import type { EgressProxySummary, EgressProxyTestResult } from '../../types'
 import { EmptyState, ErrorBanner, Panel, formatMaybe } from '../../ui/shared'
 import { EgressProxyRow } from './proxy-row'
 
@@ -12,8 +12,11 @@ export function ProxiesTable({
   editRegion,
   updatePending,
   togglePending,
+  testingId,
+  testResults,
   updateError,
   toggleError,
+  testError,
   onEditNameChange,
   onEditProxyUrlChange,
   onEditRegionChange,
@@ -21,6 +24,7 @@ export function ProxiesTable({
   onCancelEdit,
   onStartEdit,
   onToggleEnabled,
+  onTestProxy,
   t,
 }: {
   title: string
@@ -32,8 +36,11 @@ export function ProxiesTable({
   editRegion: string
   updatePending: boolean
   togglePending: boolean
+  testingId: string | null
+  testResults: Record<string, EgressProxyTestResult>
   updateError?: string
   toggleError?: string
+  testError?: string
   onEditNameChange: (value: string) => void
   onEditProxyUrlChange: (value: string) => void
   onEditRegionChange: (value: string) => void
@@ -41,6 +48,7 @@ export function ProxiesTable({
   onCancelEdit: () => void
   onStartEdit: (proxy: EgressProxySummary) => void
   onToggleEnabled: (proxyId: string, enabled: boolean) => void
+  onTestProxy: (proxyId: string) => void
   t: (key: string, values?: Record<string, string | number>) => string
 }) {
   return (
@@ -49,7 +57,7 @@ export function ProxiesTable({
         <EmptyState title={t('proxies.no_proxies')} body={t('proxies.no_proxies_desc')} />
       ) : (
         <div className="table-scroll">
-          <table className="data-table">
+          <table className="data-table proxies-table">
             <thead>
               <tr>
                 <th>{t('table.name')}</th>
@@ -72,6 +80,8 @@ export function ProxiesTable({
                   editRegion={editRegion}
                   updatePending={updatePending}
                   togglePending={togglePending}
+                  testingId={testingId}
+                  testResult={testResults[proxy.id]}
                   onEditNameChange={onEditNameChange}
                   onEditProxyUrlChange={onEditProxyUrlChange}
                   onEditRegionChange={onEditRegionChange}
@@ -79,6 +89,7 @@ export function ProxiesTable({
                   onCancelEdit={onCancelEdit}
                   onStartEdit={onStartEdit}
                   onToggleEnabled={onToggleEnabled}
+                  onTestProxy={onTestProxy}
                   t={t}
                 />
               ))}
@@ -101,6 +112,7 @@ export function ProxiesTable({
       ) : null}
       {updateError ? <ErrorBanner message={updateError} /> : null}
       {toggleError ? <ErrorBanner message={toggleError} /> : null}
+      {testError ? <ErrorBanner message={testError} /> : null}
     </Panel>
   )
 }

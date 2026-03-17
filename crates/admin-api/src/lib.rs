@@ -26,7 +26,7 @@ use wdapm_core::{
     sqlite_timestamp,
 };
 use wdapm_storage::{PlatformApiKeyInsert, StorageError, StorageService};
-use wdapm_worker::{ReconcileReport, WorkerError, WorkerService};
+use wdapm_worker::{EgressProxyTestResult, ReconcileReport, WorkerError, WorkerService};
 
 const ADMIN_SESSION_TTL_SECONDS: i64 = 86_400;
 
@@ -101,6 +101,7 @@ pub fn build_router(state: AdminApiState) -> Router {
             "/egress-proxies",
             get(list_egress_proxies).post(create_egress_proxy),
         )
+        .route("/egress-proxies/{proxy_id}/test", post(test_egress_proxy))
         .route("/egress-proxies/{proxy_id}", patch(update_egress_proxy))
         .route("/request-logs", get(list_request_logs))
         .route("/async-jobs", get(list_async_jobs))

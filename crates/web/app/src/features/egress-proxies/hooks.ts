@@ -1,7 +1,7 @@
 import { useMutation, type QueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { adminApi } from '../../api'
-import type { EgressProxySummary } from '../../types'
+import type { EgressProxySummary, EgressProxyTestResult } from '../../types'
 
 export function useEgressProxiesStateAndMutations({
   token,
@@ -18,6 +18,8 @@ export function useEgressProxiesStateAndMutations({
   const [editName, setEditName] = useState('')
   const [editProxyUrl, setEditProxyUrl] = useState('')
   const [editRegion, setEditRegion] = useState('')
+  const [testingId, setTestingId] = useState<string | null>(null)
+  const [testResults, setTestResults] = useState<Record<string, EgressProxyTestResult>>({})
 
   const resetCreateForm = () => {
     setName('')
@@ -82,6 +84,19 @@ export function useEgressProxiesStateAndMutations({
     },
   })
 
+  const testMutation = useMutation({
+    mutationFn: async (proxyId: string) => adminApi.testEgressProxy(token, proxyId),
+    onMutate: async (proxyId: string) => {
+      setTestingId(proxyId)
+    },
+    onSuccess: async (result) => {
+      setTestResults((current) => ({ ...current, [result.proxy_id]: result }))
+    },
+    onSettled: async () => {
+      setTestingId(null)
+    },
+  })
+
   const handleStartEdit = (proxy: EgressProxySummary) => {
     setEditingId(proxy.id)
     setEditName(proxy.name)
@@ -98,9 +113,12 @@ export function useEgressProxiesStateAndMutations({
     editName,
     editProxyUrl,
     editRegion,
+    testingId,
+    testResults,
     createMutation,
     updateMutation,
     toggleMutation,
+    testMutation,
     setDrawerOpen,
     setName,
     setProxyUrl,
@@ -114,5 +132,6 @@ export function useEgressProxiesStateAndMutations({
     onSaveEdit: (proxyId: string) => void updateMutation.mutateAsync(proxyId),
     onToggleEnabled: (proxyId: string, enabled: boolean) =>
       void toggleMutation.mutateAsync({ proxyId, enabled }),
+    onTestProxy: (proxyId: string) => void testMutation.mutateAsync(proxyId),
   }
 }

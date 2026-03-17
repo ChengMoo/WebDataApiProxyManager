@@ -106,3 +106,43 @@ async fn update_egress_proxy(
 
     Ok(Json(summary))
 }
+
+async fn test_egress_proxy(
+    State(state): State<AdminApiState>,
+    Path(proxy_id): Path<String>,
+    headers: HeaderMap,
+) -> Result<Json<EgressProxyTestResult>, AdminApiError> {
+    let admin_identity = authorize_with_identity(&headers, &state.storage).await?;
+    let proxy = state
+        .storage
+        .find_egress_proxy(&proxy_id)
+        .await?
+        .ok_or_else(|| AdminApiError::NotFound(proxy_id.clone()))?;
+    let result = state.worker.test_egress_proxy(&proxy).await;
+
+    emit_audit(
+        &state,
+        &admin_identity,
+        "test",
+        "egress_proxy",
+        Some(&proxy_id),
+        None,
+        Some(serde_json::json!({
+            "ok": result.ok,
+            "status_code": result.status_code,
+            "latency_ms": result.latency_ms,
+            "message": result.message.clone(),
+        })),
+    )
+    .await;
+
+    info!(
+        egress_proxy_id = %proxy_id,
+        ok = result.ok,
+        status_code = result.status_code,
+        latency_ms = result.latency_ms,
+        "admin tested egress proxy"
+    );
+
+    Ok(Json(result))
+}

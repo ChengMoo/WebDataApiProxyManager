@@ -1,4 +1,4 @@
-import type { EgressProxySummary } from '../types'
+import type { EgressProxySummary, EgressProxyTestResult } from '../types'
 import { request } from './core'
 
 export const egressProxiesApi = {
@@ -29,6 +29,12 @@ export const egressProxiesApi = {
       method: 'PATCH',
       token,
       body: payload,
+    })
+  },
+  testEgressProxy(token: string, proxyId: string) {
+    return request<EgressProxyTestResult>(`/egress-proxies/${proxyId}/test`, {
+      method: 'POST',
+      token,
     })
   },
 }

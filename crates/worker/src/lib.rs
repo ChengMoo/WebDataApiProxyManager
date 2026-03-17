@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::time::Duration as StdDuration;
+use std::time::Instant;
 
 use reqwest::{Client, Proxy, StatusCode};
 use thiserror::Error;
@@ -20,6 +21,8 @@ const ALERT_RETRIGGER_WINDOW_SECONDS: i64 = 600;
 const UPSTREAM_CONNECT_TIMEOUT_SECONDS: u64 = 5;
 const UPSTREAM_REQUEST_TIMEOUT_SECONDS: u64 = 60;
 const UPSTREAM_IDLE_TIMEOUT_SECONDS: u64 = 90;
+const EGRESS_PROXY_TEST_URL: &str = "https://api.ipify.org?format=json";
+const EGRESS_PROXY_TEST_TIMEOUT_SECONDS: u64 = 15;
 
 #[derive(Clone)]
 pub struct WorkerService {
@@ -34,6 +37,17 @@ pub struct ReconcileReport {
     pub progressed: usize,
     pub settled: usize,
     pub failed: usize,
+}
+
+#[derive(Clone, Debug, serde::Serialize)]
+pub struct EgressProxyTestResult {
+    pub proxy_id: String,
+    pub ok: bool,
+    pub target_url: String,
+    pub status_code: Option<u16>,
+    pub latency_ms: i64,
+    pub message: String,
+    pub response_excerpt: Option<String>,
 }
 
 struct FinalizeJob<'a> {
@@ -140,6 +154,145 @@ impl WorkerService {
         );
 
         Ok(report)
+    }
+
+    pub async fn test_egress_proxy(&self, proxy: &EgressProxy) -> EgressProxyTestResult {
+        let proxy_target = summarize_proxy_url(&proxy.proxy_url);
+        let started_at = Instant::now();
+        let builder = Client::builder()
+            .connect_timeout(StdDuration::from_secs(UPSTREAM_CONNECT_TIMEOUT_SECONDS))
+            .timeout(StdDuration::from_secs(EGRESS_PROXY_TEST_TIMEOUT_SECONDS))
+            .proxy(match Proxy::all(&proxy.proxy_url) {
+                Ok(value) => value,
+                Err(error) => {
+                    let latency_ms = started_at.elapsed().as_millis() as i64;
+                    let message = error.to_string();
+                    info!(
+                        egress_proxy_id = proxy.id.as_str(),
+                        proxy_target = proxy_target.as_str(),
+                        test_url = EGRESS_PROXY_TEST_URL,
+                        latency_ms,
+                        ok = false,
+                        error = message.as_str(),
+                        "egress proxy test completed"
+                    );
+                    return EgressProxyTestResult {
+                        proxy_id: proxy.id.clone(),
+                        ok: false,
+                        target_url: EGRESS_PROXY_TEST_URL.to_owned(),
+                        status_code: None,
+                        latency_ms,
+                        message,
+                        response_excerpt: None,
+                    };
+                }
+            });
+        let client = match builder.build() {
+            Ok(value) => value,
+            Err(error) => {
+                let latency_ms = started_at.elapsed().as_millis() as i64;
+                let message = error.to_string();
+                info!(
+                    egress_proxy_id = proxy.id.as_str(),
+                    proxy_target = proxy_target.as_str(),
+                    test_url = EGRESS_PROXY_TEST_URL,
+                    latency_ms,
+                    ok = false,
+                    error = message.as_str(),
+                    "egress proxy test completed"
+                );
+                return EgressProxyTestResult {
+                    proxy_id: proxy.id.clone(),
+                    ok: false,
+                    target_url: EGRESS_PROXY_TEST_URL.to_owned(),
+                    status_code: None,
+                    latency_ms,
+                    message,
+                    response_excerpt: None,
+                };
+            }
+        };
+        let response = match client.get(EGRESS_PROXY_TEST_URL).send().await {
+            Ok(value) => value,
+            Err(error) => {
+                let latency_ms = started_at.elapsed().as_millis() as i64;
+                let message = error.to_string();
+                info!(
+                    egress_proxy_id = proxy.id.as_str(),
+                    proxy_target = proxy_target.as_str(),
+                    test_url = EGRESS_PROXY_TEST_URL,
+                    latency_ms,
+                    ok = false,
+                    error = message.as_str(),
+                    "egress proxy test completed"
+                );
+                return EgressProxyTestResult {
+                    proxy_id: proxy.id.clone(),
+                    ok: false,
+                    target_url: EGRESS_PROXY_TEST_URL.to_owned(),
+                    status_code: None,
+                    latency_ms,
+                    message,
+                    response_excerpt: None,
+                };
+            }
+        };
+        let status_code = response.status().as_u16();
+        let body = match response.text().await {
+            Ok(value) => value,
+            Err(error) => {
+                let latency_ms = started_at.elapsed().as_millis() as i64;
+                let message = error.to_string();
+                info!(
+                    egress_proxy_id = proxy.id.as_str(),
+                    proxy_target = proxy_target.as_str(),
+                    test_url = EGRESS_PROXY_TEST_URL,
+                    latency_ms,
+                    status_code,
+                    ok = false,
+                    error = message.as_str(),
+                    "egress proxy test completed"
+                );
+                return EgressProxyTestResult {
+                    proxy_id: proxy.id.clone(),
+                    ok: false,
+                    target_url: EGRESS_PROXY_TEST_URL.to_owned(),
+                    status_code: Some(status_code),
+                    latency_ms,
+                    message,
+                    response_excerpt: None,
+                };
+            }
+        };
+        let latency_ms = started_at.elapsed().as_millis() as i64;
+        let ok = (200..400).contains(&status_code);
+        let response_excerpt = summarize_test_response(&body);
+        let message = if ok {
+            format!("HTTP {status_code}")
+        } else {
+            response_excerpt
+                .clone()
+                .unwrap_or_else(|| format!("HTTP {status_code}"))
+        };
+        info!(
+            egress_proxy_id = proxy.id.as_str(),
+            proxy_target = proxy_target.as_str(),
+            test_url = EGRESS_PROXY_TEST_URL,
+            latency_ms,
+            status_code,
+            ok,
+            response_excerpt = response_excerpt.as_deref(),
+            "egress proxy test completed"
+        );
+        EgressProxyTestResult {
+            proxy_id: proxy.id.clone(),
+            ok,
+            target_url: EGRESS_PROXY_TEST_URL.to_owned(),
+            status_code: Some(status_code),
+            latency_ms,
+            message,
+            response_excerpt,
+        }
     }
 
     pub async fn settle_async_job(
@@ -619,6 +772,18 @@ fn should_trigger_alert(last_triggered_at: Option<&str>, now: OffsetDateTime) ->
         return true;
     };
     now - last_triggered_at >= Duration::seconds(ALERT_RETRIGGER_WINDOW_SECONDS)
+}
+
+fn summarize_test_response(value: &str) -> Option<String> {
+    let compact = value.split_whitespace().collect::<Vec<_>>().join(" ");
+    if compact.is_empty() {
+        return None;
+    }
+    let mut summary = compact.chars().take(120).collect::<String>();
+    if compact.chars().count() > 120 {
+        summary.push_str("...");
+    }
+    Some(summary)
 }
 
 #[derive(Debug, Error)]

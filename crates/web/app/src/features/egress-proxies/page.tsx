@@ -64,8 +64,11 @@ export function EgressProxiesPage() {
         editRegion={state.editRegion}
         updatePending={state.updateMutation.isPending}
         togglePending={state.toggleMutation.isPending}
+        testingId={state.testingId}
+        testResults={state.testResults}
         updateError={state.updateMutation.error?.message}
         toggleError={state.toggleMutation.error?.message}
+        testError={state.testMutation.error?.message}
         onEditNameChange={state.setEditName}
         onEditProxyUrlChange={state.setEditProxyUrl}
         onEditRegionChange={state.setEditRegion}
@@ -73,6 +76,7 @@ export function EgressProxiesPage() {
         onCancelEdit={state.resetEditForm}
         onStartEdit={state.handleStartEdit}
         onToggleEnabled={state.onToggleEnabled}
+        onTestProxy={state.onTestProxy}
         t={t}
       />
     </div>

@@ -10,6 +10,8 @@ export const operationsMessages = {
   'proxies.no_proxies': { en: 'No Proxies', zh: '无代理' },
   'proxies.no_proxies_desc': { en: 'Click the button above to add the first egress proxy.', zh: '点击右上角按钮添加第一个出口代理。' },
   'proxies.add': { en: 'Add Proxy', zh: '添加代理' },
+  'proxies.test_success': { en: 'Test Passed', zh: '测试成功' },
+  'proxies.test_failed': { en: 'Test Failed', zh: '测试失败' },
 
   'requests.title': { en: 'Request Logs', zh: '请求日志' },
   'requests.desc': { en: 'View routes, accounts, proxies and latency.', zh: '查看路由、账号、代理和耗时。' },

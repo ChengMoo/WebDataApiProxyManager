@@ -46,6 +46,16 @@ export type EgressProxySummary = {
   updated_at: string
 }
 
+export type EgressProxyTestResult = {
+  proxy_id: string
+  ok: boolean
+  target_url: string
+  status_code: number | null
+  latency_ms: number
+  message: string
+  response_excerpt: string | null
+}
+
 export type RequestLogRecord = {
   id: string
   tenant_id: string | null

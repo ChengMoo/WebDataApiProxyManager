@@ -1,5 +1,6 @@
-import type { EgressProxySummary } from '../../types'
+import type { EgressProxySummary, EgressProxyTestResult } from '../../types'
 import {
+  ActionDropdown,
   StatusBadge,
   formatManagedStatus,
   formatMaybe,
@@ -14,6 +15,8 @@ export function EgressProxyRow({
   editRegion,
   updatePending,
   togglePending,
+  testingId,
+  testResult,
   onEditNameChange,
   onEditProxyUrlChange,
   onEditRegionChange,
@@ -21,6 +24,7 @@ export function EgressProxyRow({
   onCancelEdit,
   onStartEdit,
   onToggleEnabled,
+  onTestProxy,
   t,
 }: {
   proxy: EgressProxySummary
@@ -30,6 +34,8 @@ export function EgressProxyRow({
   editRegion: string
   updatePending: boolean
   togglePending: boolean
+  testingId: string | null
+  testResult?: EgressProxyTestResult
   onEditNameChange: (value: string) => void
   onEditProxyUrlChange: (value: string) => void
   onEditRegionChange: (value: string) => void
@@ -37,9 +43,24 @@ export function EgressProxyRow({
   onCancelEdit: () => void
   onStartEdit: (proxy: EgressProxySummary) => void
   onToggleEnabled: (proxyId: string, enabled: boolean) => void
+  onTestProxy: (proxyId: string) => void
   t: (key: string, values?: Record<string, string | number>) => string
 }) {
   const isEditing = editingId === proxy.id
+  const isTesting = testingId === proxy.id
+  const testLabel = testResult
+    ? [
+        testResult.ok ? t('proxies.test_success') : t('proxies.test_failed'),
+        `${testResult.latency_ms}ms`,
+        testResult.status_code
+          ? `HTTP ${testResult.status_code}`
+          : !testResult.ok
+            ? testResult.message
+            : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : null
 
   return (
     <tr>
@@ -78,7 +99,7 @@ export function EgressProxyRow({
         )}
       </td>
       <td>{proxy.consecutive_failures}</td>
-      <td className="mono-cell">
+      <td className="mono-cell proxy-target-cell">
         {isEditing ? (
           <input
             value={editProxyUrl}
@@ -86,7 +107,21 @@ export function EgressProxyRow({
             placeholder={proxy.proxy_url}
           />
         ) : (
-          proxy.proxy_url
+          <div className="proxy-target-stack">
+            <span className="proxy-target-value" title={proxy.proxy_url}>
+              {proxy.proxy_url}
+            </span>
+            {isTesting ? (
+              <span className="proxy-test-feedback">{t('common.testing')}</span>
+            ) : testLabel ? (
+              <span
+                className={`proxy-test-feedback${testResult?.ok ? ' is-success' : ' is-danger'}`}
+                title={testResult?.response_excerpt ?? testResult?.message}
+              >
+                {testLabel}
+              </span>
+            ) : null}
+          </div>
         )}
       </td>
       <td>
@@ -106,23 +141,23 @@ export function EgressProxyRow({
               </button>
             </>
           ) : (
-            <>
-              <button
-                type="button"
-                className="ghost-button"
-                onClick={() => onStartEdit(proxy)}
-              >
-                {t('common.edit')}
-              </button>
-              <button
-                type="button"
-                className={proxy.enabled ? 'danger-button' : 'ghost-button'}
-                disabled={togglePending}
-                onClick={() => onToggleEnabled(proxy.id, !proxy.enabled)}
-              >
-                {proxy.enabled ? t('common.disable') : t('common.enable')}
-              </button>
-            </>
+            <ActionDropdown
+              primaryLabel={t('common.edit')}
+              onPrimaryClick={() => onStartEdit(proxy)}
+              items={[
+                {
+                  label: isTesting ? t('common.testing') : t('common.test'),
+                  disabled: isTesting,
+                  onClick: () => onTestProxy(proxy.id),
+                },
+                {
+                  label: proxy.enabled ? t('common.disable') : t('common.enable'),
+                  danger: proxy.enabled,
+                  disabled: togglePending,
+                  onClick: () => onToggleEnabled(proxy.id, !proxy.enabled),
+                },
+              ]}
+            />
           )}
         </div>
       </td>

@@ -1,3 +1,39 @@
 .proxy-region-input {
   width: 100px;
 }
+
+.proxy-target-cell {
+  min-width: 0;
+}
+
+.proxy-target-stack {
+  display: grid;
+  gap: 4px;
+}
+
+.proxy-target-value,
+.proxy-test-feedback {
+  display: block;
+  width: clamp(180px, 32vw, 320px);
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.proxy-target-value {
+  color: var(--text);
+}
+
+.proxy-test-feedback {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.proxy-test-feedback.is-success {
+  color: var(--success);
+}
+
+.proxy-test-feedback.is-danger {
+  color: var(--danger);
+}
