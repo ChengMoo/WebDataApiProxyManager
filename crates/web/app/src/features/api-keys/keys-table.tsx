@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { ActionDropdown, CheckIcon, CopyIcon, EmptyState, ErrorBanner, Panel, StatusBadge, formatTimestamp } from '../../ui/shared'
 import type { PlatformApiKeyRecord } from '../../types'
 import { formatQuota } from './utils'
@@ -5,6 +6,7 @@ import { formatQuota } from './utils'
 export function ApiKeysPanel({
   title,
   description,
+  actions,
   keys,
   editingId,
   editName,
@@ -27,6 +29,7 @@ export function ApiKeysPanel({
 }: {
   title: string
   description: string
+  actions?: ReactNode
   keys: PlatformApiKeyRecord[]
   editingId: string | null
   editName: string
@@ -48,7 +51,7 @@ export function ApiKeysPanel({
   t: (key: string, values?: Record<string, string | number>) => string
 }) {
   return (
-    <Panel title={title} description={description}>
+    <Panel title={title} description={description} actions={actions}>
       {keys.length === 0 ? (
         <EmptyState title={t('api_keys.no_keys')} body={t('api_keys.no_keys_desc')} />
       ) : (

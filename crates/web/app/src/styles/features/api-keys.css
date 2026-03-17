@@ -117,7 +117,62 @@
 .api-key-hint {
   font-size: 12px;
   color: var(--text-tertiary);
-  white-space: nowrap;
+  white-space: normal;
+}
+
+.api-endpoints-list {
+  gap: 10px;
+}
+
+.api-endpoints-toolbar {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.api-endpoints-provider {
+  display: grid;
+  gap: 6px;
+  min-width: min(280px, 100%);
+}
+
+.api-endpoint-row {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.api-endpoint-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.api-endpoint-meta strong {
+  font-size: 13px;
+  color: var(--text-heading);
+}
+
+.api-endpoint-url {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+}
+
+@media (max-width: 640px) {
+  .api-endpoint-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .api-endpoint-meta {
+    flex-wrap: wrap;
+  }
+
+  .api-endpoint-row .copy-btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .api-keys-table .cell-stack {

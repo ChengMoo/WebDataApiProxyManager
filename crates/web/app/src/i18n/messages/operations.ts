@@ -39,8 +39,6 @@ export const operationsMessages = {
   'async.reconcile_result': { en: 'Reconcile Result', zh: '同步结果' },
   'async.reconcile_stats': { en: 'scanned: {scanned} · progressed: {progressed} · settled: {settled} · failed: {failed}', zh: '扫描: {scanned} · 更新: {progressed} · 完成: {settled} · 失败: {failed}' },
 
-  'api_keys.eyebrow': { en: 'Operations', zh: '管理' },
-  'api_keys.title': { en: 'API Keys', zh: 'API 密钥' },
   'api_keys.create': { en: 'Create API Key', zh: '创建 API 密钥' },
   'api_keys.create_desc': { en: 'Create a new Platform API Key.', zh: '创建新的平台 API 密钥。' },
   'api_keys.quota_label': { en: 'Quota (0 = unlimited)', zh: '配额（0 = 无限制）' },
@@ -50,6 +48,12 @@ export const operationsMessages = {
   'api_keys.dismiss': { en: 'Dismiss', zh: '关闭' },
   'api_keys.pool': { en: 'API Keys', zh: 'API 密钥' },
   'api_keys.count': { en: '{count} keys', zh: '{count} 个密钥' },
+  'api_keys.endpoints_title': { en: 'Proxy Endpoints', zh: '代理接口' },
+  'api_keys.endpoints_desc': { en: 'Copy the full proxy URL directly. Current domain: {origin}', zh: '可直接复制完整代理地址。当前域名：{origin}' },
+  'api_keys.endpoints_desc_fallback': { en: 'Copy the full proxy URL directly. The current domain will be detected in the browser.', zh: '可直接复制完整代理地址。当前域名会在浏览器中自动识别。' },
+  'api_keys.provider_label': { en: 'Provider', zh: '提供商' },
+  'api_keys.endpoints_hint': { en: 'Send requests to these URLs with your Platform API Key in the headers.', zh: '请求这些地址时，在请求头中携带平台 API Key。' },
+  'api_keys.endpoints_hint_jina': { en: 'Jina must use /jina/r or /jina/s. Append the target URL after that prefix.', zh: 'Jina 必须使用 /jina/r 或 /jina/s，并在该前缀后继续拼接目标 URL。' },
   'api_keys.no_keys': { en: 'No API Keys', zh: '无 API 密钥' },
   'api_keys.no_keys_desc': { en: 'Click the button above to create the first Platform API Key.', zh: '点击右上角按钮创建第一个平台 API 密钥。' },
 } satisfies Record<string, { en: string; zh: string }>

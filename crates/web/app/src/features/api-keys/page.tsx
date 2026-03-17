@@ -7,6 +7,7 @@ import { ErrorBanner, Spinner, useCopyFeedback } from '../../ui/shared'
 import type { PlatformApiKeyRecord } from '../../types'
 import { CreateKeyDrawer } from './create-key-drawer'
 import { ApiKeysPanel } from './keys-table'
+import { ProxyEndpointsPanel } from './proxy-endpoints-panel'
 
 export function ApiKeysPage() {
   const { token } = useSession()
@@ -82,20 +83,13 @@ export function ApiKeysPage() {
     setCreatedKey(null)
   }
 
+  const baseOrigin =
+    typeof window === 'undefined'
+      ? ''
+      : window.location.origin.trim().replace(/\/+$/, '')
+
   return (
     <div className="page-grid">
-      <section className="hero-strip">
-        <div>
-          <span className="eyebrow">{t('api_keys.eyebrow')}</span>
-          <h2>{t('api_keys.title')}</h2>
-        </div>
-        <div className="hero-actions">
-          <button type="button" className="primary-button" onClick={() => { setCreatedKey(null); setDrawerOpen(true) }}>
-            + {t('api_keys.create_btn')}
-          </button>
-        </div>
-      </section>
-
       <CreateKeyDrawer
         open={drawerOpen}
         onClose={closeDrawer}
@@ -116,9 +110,30 @@ export function ApiKeysPage() {
         t={t}
       />
 
+      <ProxyEndpointsPanel
+        baseOrigin={baseOrigin}
+        copiedId={copiedId}
+        onCopyEndpoint={(endpoint, copyId) => {
+          void copy(endpoint, copyId)
+        }}
+        t={t}
+      />
+
       <ApiKeysPanel
         title={t('api_keys.pool')}
         description={t('api_keys.count', { count: keysQuery.data?.length ?? 0 })}
+        actions={(
+          <button
+            type="button"
+            className="primary-button"
+            onClick={() => {
+              setCreatedKey(null)
+              setDrawerOpen(true)
+            }}
+          >
+            + {t('api_keys.create_btn')}
+          </button>
+        )}
         keys={keysQuery.data ?? []}
         editingId={editingId}
         editName={editName}
