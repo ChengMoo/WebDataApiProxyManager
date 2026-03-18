@@ -237,6 +237,13 @@ struct WebhookQuery {
 
 include!("webhook.rs");
 
+#[derive(Clone)]
+struct PinnedAsyncRouteSelection {
+    account: ProviderAccount,
+    egress_proxy: Option<EgressProxy>,
+    selection_reason: String,
+}
+
 async fn proxy(
     State(state): State<GatewayState>,
     method: Method,
@@ -289,83 +296,98 @@ async fn proxy_request(
         body: body.to_vec(),
         received_at: time::OffsetDateTime::now_utc(),
     };
+    let pinned_async_route =
+        resolve_pinned_async_route(&state, provider_id, &method, route.upstream_path.as_str())
+            .await?;
 
     let max_retries = state.scheduler.config().max_retries;
+    let using_pinned_async_route = pinned_async_route.is_some();
     let mut excluded_account_ids: Vec<String> = Vec::new();
     let mut excluded_routes: Vec<RouteRetryExclusion> = Vec::new();
     let mut last_error: Option<GatewayError> = None;
     let mut last_retryable_response: Option<DeferredRetryableResponse> = None;
 
     for attempt in 0..=max_retries {
-        let excluded_account_refs = excluded_account_ids
-            .iter()
-            .map(String::as_str)
-            .collect::<Vec<_>>();
-        let excluded_route_refs = excluded_routes
-            .iter()
-            .map(|route| SchedulerRouteExclusion {
-                account_id: route.account_id.as_str(),
-                proxy_id: route.proxy_id.as_deref(),
-            })
-            .collect::<Vec<_>>();
-        let selection = match state
-            .scheduler
-            .select_route_excluding(
-                &state.storage,
-                provider_id,
-                SchedulerExclusions {
-                    account_ids: &excluded_account_refs,
-                    routes: &excluded_route_refs,
-                },
-            )
-            .await
-        {
-            Ok(sel) => sel,
-            Err(err) => {
-                if attempt > 0 {
-                    if let Some(pending) = last_retryable_response.take() {
-                        let DeferredRetryableResponse {
-                            account,
-                            egress_proxy,
-                            upstream,
-                            response_class,
-                            latency_ms,
-                            selection_reason,
-                            plan_url,
-                            route_upstream_path,
-                            webhook_secret,
-                            attempts,
-                        } = pending;
-                        return finalize_upstream_response(
-                            &state,
-                            FinalizeUpstreamResponseArgs {
-                                provider: provider.as_str(),
-                                provider_id,
-                                upstream_path: &route_upstream_path,
-                                request_envelope: &request_envelope,
-                                plan_url: &plan_url,
-                                account: &account,
-                                egress_proxy: egress_proxy.as_ref(),
-                                response_class,
-                                latency_ms,
-                                selection_reason: &selection_reason,
-                                attempts,
-                                platform_api_key: &platform_api_key,
-                                webhook_secret,
-                                outcome_recorded: true,
-                            },
-                            upstream,
-                        )
-                        .await;
+        let (selection_reason, account, egress_proxy) =
+            if let Some(pinned_route) = &pinned_async_route {
+                (
+                    pinned_route.selection_reason.clone(),
+                    pinned_route.account.clone(),
+                    pinned_route.egress_proxy.clone(),
+                )
+            } else {
+                let excluded_account_refs = excluded_account_ids
+                    .iter()
+                    .map(String::as_str)
+                    .collect::<Vec<_>>();
+                let excluded_route_refs = excluded_routes
+                    .iter()
+                    .map(|route| SchedulerRouteExclusion {
+                        account_id: route.account_id.as_str(),
+                        proxy_id: route.proxy_id.as_deref(),
+                    })
+                    .collect::<Vec<_>>();
+                let selection = match state
+                    .scheduler
+                    .select_route_excluding(
+                        &state.storage,
+                        provider_id,
+                        SchedulerExclusions {
+                            account_ids: &excluded_account_refs,
+                            routes: &excluded_route_refs,
+                        },
+                    )
+                    .await
+                {
+                    Ok(selection) => selection,
+                    Err(err) => {
+                        if attempt > 0 {
+                            if let Some(pending) = last_retryable_response.take() {
+                                let DeferredRetryableResponse {
+                                    account,
+                                    egress_proxy,
+                                    upstream,
+                                    response_class,
+                                    latency_ms,
+                                    selection_reason,
+                                    plan_url,
+                                    route_upstream_path,
+                                    webhook_secret,
+                                    attempts,
+                                } = pending;
+                                return finalize_upstream_response(
+                                    &state,
+                                    FinalizeUpstreamResponseArgs {
+                                        provider: provider.as_str(),
+                                        provider_id,
+                                        upstream_path: &route_upstream_path,
+                                        request_envelope: &request_envelope,
+                                        plan_url: &plan_url,
+                                        account: &account,
+                                        egress_proxy: egress_proxy.as_ref(),
+                                        response_class,
+                                        latency_ms,
+                                        selection_reason: &selection_reason,
+                                        attempts,
+                                        platform_api_key: &platform_api_key,
+                                        webhook_secret,
+                                        outcome_recorded: true,
+                                    },
+                                    upstream,
+                                )
+                                .await;
+                            }
+                            break;
+                        }
+                        return Err(err.into());
                     }
-                    break;
-                }
-                return Err(err.into());
-            }
-        };
-        let selection_reason = selection.selection_reason;
-        let account = selection.account;
-        let egress_proxy = selection.egress_proxy;
+                };
+                (
+                    selection.selection_reason,
+                    selection.account,
+                    selection.egress_proxy,
+                )
+            };
         let egress_mode = if egress_proxy.is_some() {
             "proxy"
         } else {
@@ -478,13 +500,21 @@ async fn proxy_request(
                         provider = %provider_id,
                         provider_account_id = %account.id,
                         attempt,
+                        pinned_async_route = using_pinned_async_route,
                         error = %error_message,
-                        "transport error, retrying with different route"
+                        "{}",
+                        if using_pinned_async_route {
+                            "transport error, retrying tracked async route"
+                        } else {
+                            "transport error, retrying with different route"
+                        }
                     );
-                    excluded_routes.push(RouteRetryExclusion {
-                        account_id: account.id,
-                        proxy_id: egress_proxy.as_ref().map(|value| value.id.clone()),
-                    });
+                    if !using_pinned_async_route {
+                        excluded_routes.push(RouteRetryExclusion {
+                            account_id: account.id,
+                            proxy_id: egress_proxy.as_ref().map(|value| value.id.clone()),
+                        });
+                    }
                     last_error = Some(error);
                     continue;
                 }
@@ -539,7 +569,13 @@ async fn proxy_request(
                 provider_account_id = %account.id,
                 status = upstream.status.as_u16(),
                 attempt,
-                "retryable response, trying next account"
+                pinned_async_route = using_pinned_async_route,
+                "{}",
+                if using_pinned_async_route {
+                    "retryable response, retrying tracked async route"
+                } else {
+                    "retryable response, trying next account"
+                }
             );
             if let Err(storage_error) = record_provider_account_outcome(
                 &state,
@@ -584,7 +620,9 @@ async fn proxy_request(
                 webhook_secret,
                 attempts: attempt + 1,
             });
-            excluded_account_ids.push(excluded_account_id);
+            if !using_pinned_async_route {
+                excluded_account_ids.push(excluded_account_id);
+            }
             continue;
         }
 
@@ -612,6 +650,114 @@ async fn proxy_request(
     }
 
     Err(last_error.unwrap_or_else(|| GatewayError::ProviderUnavailable(provider_id)))
+}
+
+async fn resolve_pinned_async_route(
+    state: &GatewayState,
+    provider_id: ProviderId,
+    method: &Method,
+    upstream_path: &str,
+) -> Result<Option<PinnedAsyncRouteSelection>, GatewayError> {
+    if provider_id != ProviderId::Firecrawl || *method != Method::GET {
+        return Ok(None);
+    }
+    let Some((route, upstream_job_id)) = parse_firecrawl_async_status_path(upstream_path) else {
+        return Ok(None);
+    };
+    let Some(job) = state
+        .storage
+        .find_provider_async_job_by_upstream_id(provider_id, upstream_job_id)
+        .await
+        .map_err(GatewayError::WebhookStorage)?
+    else {
+        info!(
+            provider = %provider_id,
+            route,
+            upstream_job_id,
+            "firecrawl async status request not pinned because no tracked job was found"
+        );
+        return Ok(None);
+    };
+    let Some(account_id) = job.provider_account_id.as_deref() else {
+        return Err(GatewayError::Provider(ProviderError::InvalidRoute(
+            format!(
+                "tracked async job `{}` is missing provider account binding",
+                job.id
+            ),
+        )));
+    };
+    let Some(account) = state
+        .storage
+        .find_provider_account(account_id)
+        .await
+        .map_err(GatewayError::WebhookStorage)?
+    else {
+        return Err(GatewayError::Provider(ProviderError::InvalidRoute(
+            format!(
+                "tracked async job `{}` provider account `{account_id}` was not found",
+                job.id
+            ),
+        )));
+    };
+    let egress_proxy = match job.egress_proxy_id.as_deref() {
+        Some(proxy_id) => {
+            let proxy = state
+                .storage
+                .find_egress_proxy(proxy_id)
+                .await
+                .map_err(GatewayError::WebhookStorage)?;
+            if proxy.is_none() {
+                return Err(GatewayError::Provider(ProviderError::InvalidRoute(
+                    format!(
+                        "tracked async job `{}` egress proxy `{proxy_id}` was not found",
+                        job.id
+                    ),
+                )));
+            }
+            proxy
+        }
+        None => None,
+    };
+    let selection_reason = match &egress_proxy {
+        Some(proxy) => format!(
+            "async_job:{} upstream_job:{} account:{} egress:proxy id:{} target:{}",
+            job.id,
+            job.upstream_job_id,
+            account.id,
+            proxy.id,
+            summarize_proxy_url(&proxy.proxy_url)
+        ),
+        None => format!(
+            "async_job:{} upstream_job:{} account:{} egress:direct reason:tracked_async_job",
+            job.id, job.upstream_job_id, account.id
+        ),
+    };
+    info!(
+        async_job_id = job.id.as_str(),
+        upstream_job_id = job.upstream_job_id.as_str(),
+        provider_account_id = account.id.as_str(),
+        egress_proxy_id = egress_proxy.as_ref().map(|value| value.id.as_str()),
+        selection_reason = selection_reason.as_str(),
+        "firecrawl async status request pinned to tracked route"
+    );
+    Ok(Some(PinnedAsyncRouteSelection {
+        account,
+        egress_proxy,
+        selection_reason,
+    }))
+}
+
+fn parse_firecrawl_async_status_path(upstream_path: &str) -> Option<(&str, &str)> {
+    let normalized = upstream_path.trim_matches('/');
+    normalized
+        .strip_prefix("v2/crawl/")
+        .map(|job_id| ("v2/crawl", job_id))
+        .or_else(|| {
+            normalized
+                .strip_prefix("v2/batch/scrape/")
+                .map(|job_id| ("v2/batch/scrape", job_id))
+        })
+        .filter(|(_, job_id)| !job_id.is_empty() && !job_id.contains('/'))
 }
 
 async fn forward_request(
