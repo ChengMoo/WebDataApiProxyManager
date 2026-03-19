@@ -7,6 +7,20 @@ import { getProviderLabel } from '../../lib/provider'
 import type { ProviderRequestReport } from '../../types'
 import type { DonutBreakdownItem } from './types'
 
+function resolveDonutTotalFontSize(totalRequests: number) {
+  const digits = String(totalRequests).length
+  if (digits >= 6) {
+    return 26
+  }
+  if (digits >= 5) {
+    return 30
+  }
+  if (digits >= 4) {
+    return 34
+  }
+  return 40
+}
+
 export function buildRequestChartOption({
   reports,
   t,
@@ -109,34 +123,33 @@ export function buildPieChartOption({
   totalRequests: number
   t: (key: string, values?: Record<string, string | number>) => string
 }) {
+  const totalFontSize = resolveDonutTotalFontSize(totalRequests)
+
   return {
-    title: [
-      {
-        text: String(totalRequests),
-        left: 'center',
-        top: '40%',
-        textAlign: 'center' as const,
-        textStyle: {
-          color: CHART_TEXT_COLOR,
-          fontSize: 40,
-          fontWeight: 800,
-          fontFamily: 'Space Mono, monospace',
-        },
+    title: {
+      text: String(totalRequests),
+      subtext: t('overview.total_label').toUpperCase(),
+      left: '50%',
+      top: '52%',
+      textAlign: 'center' as const,
+      textVerticalAlign: 'middle' as const,
+      itemGap: 6,
+      textStyle: {
+        color: CHART_TEXT_COLOR,
+        fontSize: totalFontSize,
+        fontWeight: 800,
+        fontFamily: 'Space Mono, monospace',
+        lineHeight: totalFontSize,
       },
-      {
-        text: t('overview.total_label').toUpperCase(),
-        left: 'center',
-        top: '55%',
-        textAlign: 'center' as const,
-        textStyle: {
-          color: CHART_TEXT_SECONDARY,
-          fontSize: 12,
-          fontWeight: 700,
-          fontFamily: 'Space Mono, monospace',
-          letterSpacing: 1.5,
-        },
+      subtextStyle: {
+        color: CHART_TEXT_SECONDARY,
+        fontSize: 12,
+        fontWeight: 700,
+        fontFamily: 'Space Mono, monospace',
+        letterSpacing: 1.5,
+        lineHeight: 16,
       },
-    ],
+    },
     tooltip: { trigger: 'item' as const, formatter: '{b}: {c} ({d}%)' },
     series: [
       {
