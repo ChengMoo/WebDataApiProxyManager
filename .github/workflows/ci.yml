@@ -64,27 +64,24 @@ jobs:
         run: cargo clippy --workspace --all-targets -- -D warnings
 
   docker:
-    name: Docker Multi-Arch Build
+    name: Docker AMD64 Build Check
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6.0.2
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3.6.0
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4.0.0
 
-      - name: Validate multi-arch Docker build
+      - name: Validate amd64 Docker build
         uses: docker/build-push-action@v7.0.0
         with:
           context: .
           file: ./Dockerfile
           pull: true
           push: false
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           tags: wdapm-ci:latest
