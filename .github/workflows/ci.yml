@@ -66,7 +66,7 @@ jobs:
   docker:
     name: Docker AMD64 Build Check
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     permissions:
       contents: read
     steps:
@@ -85,3 +85,6 @@ jobs:
           push: false
           platforms: linux/amd64
           tags: wdapm-ci:latest
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache-from: type=gha,scope=ci-linux-amd64
+          cache-to: type=gha,mode=max,scope=ci-linux-amd64,ignore-error=true

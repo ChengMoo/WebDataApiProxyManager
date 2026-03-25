@@ -12,11 +12,24 @@ concurrency:
 
 env:
   IMAGE_NAME: ghcr.io/chengmoo/webdataapiproxymanager
+  OCI_TITLE: Web Data Api Proxy Manager
+  OCI_DESCRIPTION: Unified proxy manager for web data provider APIs
+  OCI_LICENSE: Apache-2.0
+  OCI_SOURCE: https://github.com/ChengMoo/WebDataApiProxyManager
 
 jobs:
-  publish:
+  build:
+    name: Build and push ${{ matrix.platform_id }}
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            platform_id: linux-amd64
+          - platform: linux/arm64
+            platform_id: linux-arm64
     permissions:
       contents: read
       packages: write
@@ -24,11 +37,70 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6.0.2
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3.6.0
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4.0.0
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3.6.0
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4.0.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v7.0.0
+        with:
+          context: .
+          file: ./Dockerfile
+          pull: true
+          platforms: ${{ matrix.platform }}
+          labels: |
+            org.opencontainers.image.title=${{ env.OCI_TITLE }}
+            org.opencontainers.image.description=${{ env.OCI_DESCRIPTION }}
+            org.opencontainers.image.licenses=${{ env.OCI_LICENSE }}
+            org.opencontainers.image.source=${{ env.OCI_SOURCE }}
+          outputs: type=image,name=${{ env.IMAGE_NAME }},name-canonical=true,push-by-digest=true,push=true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache-from: type=gha,scope=publish-${{ matrix.platform_id }}
+          cache-to: type=gha,mode=max,scope=publish-${{ matrix.platform_id }},ignore-error=true
+
+      - name: Export digest
+        shell: bash
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest artifact
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: digests-${{ matrix.platform_id }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    name: Create multi-arch manifest
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: build
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Download digest artifacts
+        uses: actions/download-artifact@v4.1.9
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.0.0
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v4.0.0
@@ -47,19 +119,18 @@ jobs:
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=snapshot-{{date 'YYYYMMDD-HHmmss'}}-{{sha}}
-          labels: |
-            org.opencontainers.image.title=Web Data Api Proxy Manager
-            org.opencontainers.image.description=Unified proxy manager for web data provider APIs
-            org.opencontainers.image.licenses=Apache-2.0
-            org.opencontainers.image.source=https://github.com/ChengMoo/WebDataApiProxyManager
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v7.0.0
-        with:
-          context: .
-          file: ./Dockerfile
-          pull: true
-          push: true
-          platforms: linux/amd64,linux/arm64
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        shell: bash
+        run: |
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.IMAGE_NAME }}@sha256:%s ' *)
+
+      - name: Inspect published images
+        shell: bash
+        run: |
+          while read -r tag; do
+            docker buildx imagetools inspect "$tag"
+          done < <(jq -r '.tags[]' <<< "$DOCKER_METADATA_OUTPUT_JSON")
